@@ -16,8 +16,7 @@ h2{font-size:18px}
 .btn2{background:#1877F2}
 .btn3{background:#d4af37;color:#000}
 footer{padding:15px;font-size:13px}
-/* صندوق الإضافة */
-.add-box{background:#fff;color:#222;margin:15px;padding:20px;border-radius:15px;text-align:right}
+.add-box{background:#fff;color:#222;margin:15px;padding:20px;border-radius:15px;text-align:right;display:none}
 .add-box h3{color:#0a1a3a;text-align:center}
 .add-box input,.add-box textarea{width:100%;padding:12px;margin:8px 0;border:1px solid #ccc;border-radius:8px;font-size:16px;box-sizing:border-box}
 .add-box textarea{min-height:100px}
@@ -26,8 +25,11 @@ footer{padding:15px;font-size:13px}
 .card img,.card video{width:100%;display:block;max-height:420px;object-fit:cover}
 .card-body{padding:18px;line-height:1.8}
 .card-body h3{margin:0 0 8px;color:#0a1a3a;font-size:22px;text-align:right}
-.btn-del{background:#dc2626;color:#fff;padding:10px 18px;border:none;border-radius:8px;font-weight:bold;cursor:pointer;margin-top:10px}
+.btn-del{background:#dc2626;color:#fff;padding:10px 18px;border:none;border-radius:8px;font-weight:bold;cursor:pointer;margin-top:10px;display:none}
 label{font-weight:bold}
+.login-box{background:#fff;color:#222;margin:15px;padding:15px;border-radius:15px}
+.login-box input{padding:12px;width:70%;border:1px solid #ccc;border-radius:8px;font-size:16px}
+.login-box button{padding:12px 18px;background:#0a1a3a;color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer}
 </style>
 </head>
 <body>
@@ -54,8 +56,15 @@ label{font-weight:bold}
 <p style="text-align:center;font-weight:bold">المصداقية - النزاهة - الانتماء - احترام عقل القارئ</p>
 </div>
 
-<!-- هنا الإضافة -->
-<div class="add-box">
+<!-- دخول الأدمن - انت بس -->
+<div class="login-box" id="loginBox">
+<b>🔐 دخول صاحب الموقع</b><br><br>
+<input type="password" id="pass" placeholder="اكتب كلمة السر">
+<button onclick="login()">دخول</button>
+</div>
+
+<!-- صندوق الإضافة - مخفي لحد ما تدخل -->
+<div class="add-box" id="addBox">
 <h3>➕ إضافة مقال جديد</h3>
 <label>عنوان المقال</label>
 <input id="title" placeholder="اكتب العنوان هنا">
@@ -70,7 +79,6 @@ label{font-weight:bold}
 <button class="btn-add" onclick="addArticle()">نشر المقال ✅</button>
 </div>
 
-<!-- المقالات هتظهر هنا -->
 <div id="articles"></div>
 
 <div class="box">
@@ -85,6 +93,22 @@ label{font-weight:bold}
 <footer>© 2026 منصة عين الحقيقة - جميع الحقوق محفوظة</footer>
 
 <script>
+// *** غير كلمة السر من هنا ***
+let ADMIN_PASS = "123456";
+let isAdmin = false;
+
+function login(){
+  let p = document.getElementById('pass').value;
+  if(p === ADMIN_PASS){
+    isAdmin = true;
+    document.getElementById('addBox').style.display='block';
+    document.getElementById('loginBox').innerHTML='<b style="color:green">✅ أهلا بيك يا أستاذ محمود، انت دلوقتي الأدمن</b>';
+    render();
+  } else {
+    alert('كلمة السر غلط');
+  }
+}
+
 let articles = JSON.parse(localStorage.getItem('articles') || '[]');
 function render(){
   let box = document.getElementById('articles');
@@ -92,4 +116,50 @@ function render(){
   box.innerHTML='';
   articles.forEach((a,i)=>{
     let media='';
-    if(a.image
+    if(a.image) media+=`<img src="${a.image}">`;
+    if(a.video) media+=`<video src="${a.video}" controls></video>`;
+    if(a.link){
+      if(a.link.includes('.mp4')) media+=`<video src="${a.link}" controls></video>`;
+      else media+=`<img src="${a.link}">`;
+    }
+    let delBtn = isAdmin ? `<button class="btn-del" style="display:inline-block" onclick="delArticle(${i})">🗑️ حذف المقال</button>` : '';
+    box.innerHTML+=`<div class="card">${media}<div class="card-body"><h3>${a.title}</h3><p style="white-space:pre-line">${a.text}</p>${delBtn}</div></div>`;
+  });
+}
+function readFile(file,cb){
+  if(!file){cb('');return;}
+  let r=new FileReader(); r.onload=e=>cb(e.target.result); r.readAsDataURL(file);
+}
+function addArticle(){
+  if(!isAdmin){alert('لازم تدخل كلمة السر الأول');return;}
+  let title=document.getElementById('title').value;
+  let text=document.getElementById('text').value;
+  let link=document.getElementById('link').value;
+  if(!title||!text){alert('اكتب العنوان والنص الأول');return;}
+  let imgFile=document.getElementById('image').files[0];
+  let vidFile=document.getElementById('video').files[0];
+  readFile(imgFile,img=>{
+    readFile(vidFile,vid=>{
+      articles.unshift({title,text,image:img,video:vid,link});
+      localStorage.setItem('articles',JSON.stringify(articles));
+      document.getElementById('title').value='';
+      document.getElementById('text').value='';
+      document.getElementById('link').value='';
+      document.getElementById('image').value='';
+      document.getElementById('video').value='';
+      render(); alert('اتنشر ✅');
+    });
+  });
+}
+function delArticle(i){
+  if(!isAdmin) return;
+  if(confirm('متأكد عايز تمسح المقال ده؟')){
+    articles.splice(i,1);
+    localStorage.setItem('articles',JSON.stringify(articles));
+    render();
+  }
+}
+render();
+</script>
+</body>
+</html>
