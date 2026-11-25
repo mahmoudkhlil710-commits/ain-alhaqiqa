@@ -56,14 +56,12 @@ label{font-weight:bold}
 <p style="text-align:center;font-weight:bold">المصداقية - النزاهة - الانتماء - احترام عقل القارئ</p>
 </div>
 
-<!-- دخول الأدمن - انت بس -->
 <div class="login-box" id="loginBox">
 <b>🔐 دخول صاحب الموقع</b><br><br>
 <input type="password" id="pass" placeholder="اكتب كلمة السر">
 <button onclick="login()">دخول</button>
 </div>
 
-<!-- صندوق الإضافة - مخفي لحد ما تدخل -->
 <div class="add-box" id="addBox">
 <h3>➕ إضافة مقال جديد</h3>
 <label>عنوان المقال</label>
@@ -93,10 +91,8 @@ label{font-weight:bold}
 <footer>© 2026 منصة عين الحقيقة - جميع الحقوق محفوظة</footer>
 
 <script>
-// *** غير كلمة السر من هنا ***
 let ADMIN_PASS = "123456";
 let isAdmin = false;
-
 function login(){
   let p = document.getElementById('pass').value;
   if(p === ADMIN_PASS){
@@ -104,11 +100,8 @@ function login(){
     document.getElementById('addBox').style.display='block';
     document.getElementById('loginBox').innerHTML='<b style="color:green">✅ أهلا بيك يا أستاذ محمود، انت دلوقتي الأدمن</b>';
     render();
-  } else {
-    alert('كلمة السر غلط');
-  }
+  } else { alert('كلمة السر غلط'); }
 }
-
 let articles = JSON.parse(localStorage.getItem('articles') || '[]');
 function render(){
   let box = document.getElementById('articles');
@@ -126,6 +119,25 @@ function render(){
     box.innerHTML+=`<div class="card">${media}<div class="card-body"><h3>${a.title}</h3><p style="white-space:pre-line">${a.text}</p>${delBtn}</div></div>`;
   });
 }
+// دي الدالة الجديدة اللي بتصغر الصورة
+function compressImage(file, cb){
+  if(!file){cb('');return;}
+  let reader = new FileReader();
+  reader.onload = function(e){
+    let img = new Image();
+    img.onload = function(){
+      let canvas = document.createElement('canvas');
+      let max = 800;
+      let w = img.width, h = img.height;
+      if(w > max){ h = h * max / w; w = max; }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      cb(canvas.toDataURL('image/jpeg', 0.7));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
 function readFile(file,cb){
   if(!file){cb('');return;}
   let r=new FileReader(); r.onload=e=>cb(e.target.result); r.readAsDataURL(file);
@@ -138,16 +150,19 @@ function addArticle(){
   if(!title||!text){alert('اكتب العنوان والنص الأول');return;}
   let imgFile=document.getElementById('image').files[0];
   let vidFile=document.getElementById('video').files[0];
-  readFile(imgFile,img=>{
+  if(vidFile && vidFile.size > 4000000){alert('الفيديو كبير أوي، ارفع فيديو صغير أو حط لينك فيديو من النت');return;}
+  compressImage(imgFile,img=>{
     readFile(vidFile,vid=>{
-      articles.unshift({title,text,image:img,video:vid,link});
-      localStorage.setItem('articles',JSON.stringify(articles));
-      document.getElementById('title').value='';
-      document.getElementById('text').value='';
-      document.getElementById('link').value='';
-      document.getElementById('image').value='';
-      document.getElementById('video').value='';
-      render(); alert('اتنشر ✅');
+      try{
+        articles.unshift({title,text,image:img,video:vid,link});
+        localStorage.setItem('articles',JSON.stringify(articles));
+        document.getElementById('title').value='';
+        document.getElementById('text').value='';
+        document.getElementById('link').value='';
+        document.getElementById('image').value='';
+        document.getElementById('video').value='';
+        render(); alert('اتنشر ✅');
+      }catch(e){ alert('الصورة لسه كبيرة، جرب صورة أصغر أو حط لينك الصورة'); }
     });
   });
 }
